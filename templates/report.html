@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ biz.name or 'Listing' }} — Recast report</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% macro money(v) %}{% if v < 0 %}(${{ '{:,.0f}'.format(-v) }}){% else %}${{ '{:,.0f}'.format(v) }}{% endif %}{% endmacro %}
+<nav><a class="logo" href="/">Re<span>cast</span></a>
+  <span class="row noprint"><a href="/">New report</a><button class="btn" onclick="window.print()">Save as PDF</button></span></nav>
+<div class="wrap">
+  <p class="draft">Draft for broker review. Figures come straight from the uploaded P&amp;L; addbacks and multiples are suggestions until you confirm them.{% if cim_source == 'template' %} Narrative is template text (AI drafting off).{% endif %}</p>
+  <h1 style="margin-top:18px">{{ biz.name or 'Unnamed business' }}</h1>
+  <p class="lede">{{ biz.industry }}{% if biz.location %} · {{ biz.location }}{% endif %}{% if biz.asking %} · Asking {{ biz.asking }}{% endif %}</p>
+
+  {% set L = m.years|length - 1 %}
+  <div class="kpis" style="margin-top:20px">
+    <div class="kpi"><div class="l">Revenue {{ m.years[L] }}</div><div class="v">{{ money(m.revenue[L]) }}</div></div>
+    <div class="kpi"><div class="l">SDE {{ m.years[L] }}</div><div class="v" id="k-sde">{{ money(m.sde[L]) }}</div></div>
+    <div class="kpi"><div class="l">Weighted SDE</div><div class="v" id="k-wsde">{{ money(m.weighted_sde) }}</div></div>
+    <div class="kpi"><div class="l">Indicative range</div><div class="v" id="k-range" style="font-size:19px">{{ money(val.low) }} – {{ money(val.high) }}</div></div>
+  </div>
+
+  <h2>Red flags a buyer will raise</h2>
+  {% for sev, text in m.flags %}<div class="flag {{ sev }}">{{ text }}</div>{% else %}<p class="muted">Nothing obvious. Still verify against tax returns.</p>{% endfor %}
+
+  <h2>Recast financials</h2>
+  <table>
+    <thead><tr><th>CAD</th>{% for y in m.years %}<th>{{ y }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      <tr><td>Revenue</td>{% for v in m.revenue %}<td>{{ money(v) }}</td>{% endfor %}</tr>
+      <tr class="sub"><td>Growth</td>{% for g in m.revenue_growth %}<td>{% if g is none %}—{% else %}{{ '%+.1f'|format(g) }}%{% endif %}</td>{% endfor %}</tr>
+      <tr><td>Cost of goods sold</td>{% for v in m.cogs %}<td>{{ money(v) }}</td>{% endfor %}</tr>
+      <tr><td>Gross profit</td>{% for v in m.gross_profit %}<td>{{ money(v) }}</td>{% endfor %}</tr>
+      <tr class="sub"><td>Gross margin</td>{% for v in m.gross_margin %}<td>{{ '%.1f'|format(v) }}%</td>{% endfor %}</tr>
+      <tr><td>Operating expenses</td>{% for v in m.opex %}<td>{{ money(v) }}</td>{% endfor %}</tr>
+      {% if m.other_income|sum %}<tr><td>Other income</td>{% for v in m.other_income %}<td>{{ money(v) }}</td>{% endfor %}</tr>{% endif %}
+      <tr class="total"><td>Net income (as reported)</td>{% for v in m.net_income %}<td>{{ money(v) }}</td>{% endfor %}</tr>
+      {% for a in addbacks %}
+      <tr class="ab-row" data-i="{{ loop.index0 }}"><td>+ {{ a.name }}</td>{% for v in a['values'] %}<td class="ab-v">{{ money(v) }}</td>{% endfor %}</tr>
+      {% endfor %}
+      <tr class="total"><td>Seller's discretionary earnings</td>{% for v in m.sde %}<td class="sde-v">{{ money(v) }}</td>{% endfor %}</tr>
+      <tr class="sub"><td>SDE margin</td>{% for v in m.sde_margin %}<td class="sdem-v">{{ '%.1f'|format(v) }}%</td>{% endfor %}</tr>
+    </tbody>
+  </table>
+
+  <h2>Addbacks</h2>
+  <p class="muted">Edit the % kept. Everything above updates live. "Verify" items need receipts, logbooks or statements before a buyer will accept them.</p>
+  <table>
+    <thead><tr><th>Line item</th><th>Type</th><th>Status</th><th>% added back</th><th>{{ m.years[L] }} amount</th></tr></thead>
+    <tbody>
+    {% for a in addbacks %}
+      <tr><td>{{ a.name }}<div class="muted" style="font-size:12px">{{ a.why }}</div></td>
+        <td>{{ a.type }}</td><td><span class="pill {{ a.confidence }}">{{ a.confidence }}</span></td>
+        <td><input class="share" type="number" min="0" max="100" step="5" value="{{ (a.share*100)|int }}" data-i="{{ loop.index0 }}"></td>
+        <td class="ab-last" data-i="{{ loop.index0 }}">{{ money(a['values'][L]) }}</td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No addback candidates found.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Indicative value</h2>
+  <p class="muted">Weighted SDE (latest year counted most) × your multiples. Excludes inventory, working capital and real estate.</p>
+  <div class="row noprint" style="margin-bottom:12px">
+    Multiples: <input class="multi mult" type="number" step="0.1" value="{{ val.multiples.low }}" id="ml">
+    <input class="multi mult" type="number" step="0.1" value="{{ val.multiples.mid }}" id="mm">
+    <input class="multi mult" type="number" step="0.1" value="{{ val.multiples.high }}" id="mh">
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="l">Low · <span id="t-ml">{{ val.multiples.low }}</span>x</div><div class="v" id="v-low">{{ money(val.low) }}</div></div>
+    <div class="kpi"><div class="l">Mid · <span id="t-mm">{{ val.multiples.mid }}</span>x</div><div class="v" id="v-mid">{{ money(val.mid) }}</div></div>
+    <div class="kpi"><div class="l">High · <span id="t-mh">{{ val.multiples.high }}</span>x</div><div class="v" id="v-high">{{ money(val.high) }}</div></div>
+  </div>
+
+  <div class="cim">
+  <h2>Draft CIM</h2>
+  <h3>Executive summary</h3><p>{{ cim.executive_summary }}</p>
+  <h3>Investment highlights</h3><ul>{% for x in cim.investment_highlights %}<li>{{ x }}</li>{% endfor %}</ul>
+  <h3>Business overview</h3><p>{{ cim.business_overview }}</p>
+  <h3>Operations</h3><p>{{ cim.operations }}</p>
+  <h3>Growth opportunities</h3><ul>{% for x in cim.growth_opportunities %}<li>{{ x }}</li>{% endfor %}</ul>
+  </div>
+
+  <h2>Questions buyers will ask</h2>
+  <ol>{% for q in cim.buyer_questions %}<li>{{ q }}</li>{% endfor %}</ol>
+  <h2>Collect before you market it</h2>
+  <ul>{% for x in cim.missing_info %}<li>{{ x }}</li>{% endfor %}</ul>
+</div>
+
+<script>
+const D = {{ {'years': m.years, 'net': m.net_income, 'rev': m.revenue,
+              'ab': addbacks|map(attribute='raw_values')|list} | tojson }};
+const shares = [{% for a in addbacks %}{{ a.share }},{% endfor %}];
+const fmt = v => (v < 0 ? '($' + Math.round(-v).toLocaleString() + ')' : '$' + Math.round(v).toLocaleString());
+function recalc(){
+  const n = D.years.length, L = n - 1;
+  document.querySelectorAll('.share').forEach(el => shares[+el.dataset.i] = Math.max(0, Math.min(100, +el.value || 0)) / 100);
+  const sde = D.net.slice();
+  D.ab.forEach((raw, i) => {
+    const row = document.querySelector(`.ab-row[data-i="${i}"]`);
+    raw.forEach((v, y) => { const a = v * shares[i]; sde[y] += a; row.querySelectorAll('.ab-v')[y].textContent = fmt(a); });
+    document.querySelector(`.ab-last[data-i="${i}"]`).textContent = fmt(raw[L] * shares[i]);
+    row.style.display = shares[i] > 0 ? '' : 'none';
+  });
+  document.querySelectorAll('.sde-v').forEach((td, y) => td.textContent = fmt(sde[y]));
+  document.querySelectorAll('.sdem-v').forEach((td, y) => td.textContent = (D.rev[y] ? sde[y] / D.rev[y] * 100 : 0).toFixed(1) + '%');
+  let w = 0, ws = 0; sde.forEach((v, y) => { w += v * (y + 1); ws += y + 1; }); w /= ws;
+  const ml = +document.getElementById('ml').value, mm = +document.getElementById('mm').value, mh = +document.getElementById('mh').value;
+  document.getElementById('k-sde').textContent = fmt(sde[L]);
+  document.getElementById('k-wsde').textContent = fmt(w);
+  document.getElementById('k-range').textContent = fmt(w * ml) + ' – ' + fmt(w * mh);
+  document.getElementById('v-low').textContent = fmt(w * ml);
+  document.getElementById('v-mid').textContent = fmt(w * mm);
+  document.getElementById('v-high').textContent = fmt(w * mh);
+  ['ml','mm','mh'].forEach(id => document.getElementById('t-' + id).textContent = document.getElementById(id).value);
+}
+document.querySelectorAll('.share,.mult').forEach(el => el.addEventListener('input', recalc));
+recalc();
+</script>
+</body>
+</html>
