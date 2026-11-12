@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ biz.name or 'Listing' }} — Recast report</title>
+<link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Serif+4:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 {% macro money(v) %}{% if v < 0 %}(${{ '{:,.0f}'.format(-v) }}){% else %}${{ '{:,.0f}'.format(v) }}{% endif %}{% endmacro %}
-<nav><a class="logo" href="/">Re<span>cast</span></a>
-  <span class="row noprint"><a href="/">New report</a><button class="btn" onclick="window.print()">Save as PDF</button></span></nav>
+<nav><div class="in"><a class="logo" href="/"><img src="{{ url_for('static', filename='favicon.svg') }}" alt="">Recast</a>
+  <span class="row noprint"><a class="btn ghost" href="/">New report</a><button class="btn" onclick="window.print()">Save as PDF</button></span></div></nav>
 <div class="wrap">
   <p class="draft">Draft for broker review. Figures come straight from the uploaded P&amp;L; addbacks and multiples are suggestions until you confirm them.{% if cim_source == 'template' %} Narrative is template text (AI drafting off).{% endif %}</p>
   <h1 style="margin-top:18px">{{ biz.name or 'Unnamed business' }}</h1>
@@ -22,10 +24,11 @@
     <div class="kpi"><div class="l">Indicative range</div><div class="v" id="k-range" style="font-size:19px">{{ money(val.low) }} – {{ money(val.high) }}</div></div>
   </div>
 
-  <h2>Red flags a buyer will raise</h2>
+  <h2>What a buyer will question</h2>
   {% for sev, text in m.flags %}<div class="flag {{ sev }}">{{ text }}</div>{% else %}<p class="muted">Nothing obvious. Still verify against tax returns.</p>{% endfor %}
 
   <h2>Recast financials</h2>
+  <p class="muted">Reported profit, plus the costs a new owner wouldn't carry, equals seller's discretionary earnings (SDE).</p>
   <table>
     <thead><tr><th>CAD</th>{% for y in m.years %}<th>{{ y }}</th>{% endfor %}</tr></thead>
     <tbody>

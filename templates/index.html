@@ -2,49 +2,75 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Recast — CIM drafts for Canadian business brokers</title>
+<title>Recast · Listing prep for business brokers</title>
+<meta name="description" content="Upload a seller's P&L. Get recast financials, the questions buyers will ask, and a first-draft CIM.">
+<link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Serif+4:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<nav><a class="logo" href="/">Re<span>cast</span></a><a href="/sample">See a sample report →</a></nav>
+<nav><div class="in">
+  <a class="logo" href="/"><img src="{{ url_for('static', filename='favicon.svg') }}" alt="">Recast</a>
+  <div class="links"><a href="/sample">Sample report</a><a href="#faq">Questions</a></div>
+</div></nav>
+
 <div class="wrap">
-  <h1>Seller P&amp;L in.<br>Recast financials and a draft CIM out.</h1>
-  <p class="lede">Built for Canadian business brokers. Upload the seller's P&amp;L, get SDE recast with every addback traced to a line item, the red flags a buyer will raise, and a first-draft CIM you can edit. Minutes, not a weekend.</p>
-  <div class="row" style="margin-top:18px">
+  <div class="eyebrow">For business brokers in Canada</div>
+  <h1>Turn a seller's P&amp;L into a listing-ready package.</h1>
+  <p class="lede">Upload the profit and loss statement. Recast works out what the business really earns for an owner, flags what a buyer will question, and drafts the information memo, so you start editing instead of starting from scratch.</p>
+  <div class="row" style="margin-top:22px">
     <a class="btn" href="#start">Upload a P&amp;L</a>
-    <a class="btn ghost" href="/sample">Try the sample café</a>
+    <a class="btn ghost" href="/sample">See a sample report</a>
   </div>
 
-  <div class="grid3">
-    <div class="card"><b>Addbacks you can defend</b><span class="muted">Owner pay, D&amp;A, interest, one-time items. Each tagged "standard" or "needs paper," and you toggle what stays.</span></div>
-    <div class="card"><b>The buyer's questions, first</b><span class="muted">Revenue dips, margin swings, addback-heavy SDE. You see them before the buyer's accountant does.</span></div>
-    <div class="card"><b>Canadian by default</b><span class="muted">CAD, T2-style statements, Canadian spelling. Nothing is stored after the report is generated.</span></div>
+  <div class="steps">
+    <div><span class="num">1</span><b>Upload the P&amp;L</b><p>CSV or Excel, two or three years. Add a few notes about the business.</p></div>
+    <div><span class="num">2</span><b>Review the numbers</b><p>Owner pay, depreciation and one-off costs are added back line by line. Adjust anything you disagree with.</p></div>
+    <div><span class="num">3</span><b>Edit the draft</b><p>Get a written summary, red flags, buyer questions and a document checklist. Save as PDF.</p></div>
   </div>
 
-  <h2 id="start">Run a listing</h2>
+  <h2 id="start">Start a report</h2>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form class="upload" action="/analyze" method="post" enctype="multipart/form-data">
-    <label>Seller P&amp;L (CSV or .xlsx)</label>
-    <input type="file" name="pnl" accept=".csv,.xlsx,.xlsm" required>
-    <p class="muted" style="font-size:13px;margin:6px 0 0">First row: <code>Line Item, Category, FY2023, FY2024, FY2025</code>. Category is Revenue / COGS / Expense. <a href="{{ url_for('static', filename='template_pnl.csv') }}">Download template</a></p>
+    <div class="drop">
+      <div><b>Seller's P&amp;L</b><div class="muted small">CSV or .xlsx · columns: Line Item, Category, then one column per year · <a href="{{ url_for('static', filename='template_pnl.csv') }}">template</a></div></div>
+      <input type="file" name="pnl" accept=".csv,.xlsx,.xlsm" required>
+    </div>
     <div class="two">
-      <div><label>Business name</label><input type="text" name="name" placeholder="e.g. Harbourview Bakery"></div>
-      <div><label>Industry</label><input type="text" name="industry" placeholder="e.g. Bakery / café"></div>
-      <div><label>Location</label><input type="text" name="location" placeholder="e.g. Kingston, ON"></div>
-      <div><label>Asking price (optional)</label><input type="text" name="asking" placeholder="$450,000"></div>
+      <div><label>Business name</label><input type="text" name="name" placeholder="Harbourview Bakery"></div>
+      <div><label>Industry</label><input type="text" name="industry" placeholder="Bakery"></div>
+      <div><label>Location</label><input type="text" name="location" placeholder="Kingston, ON"></div>
+      <div><label>Asking price <span class="muted">(optional)</span></label><input type="text" name="asking" placeholder="$450,000"></div>
     </div>
-    <label>Seller / broker notes</label>
-    <textarea name="notes" placeholder="Hours, staff, lease, owner's role, key customers, why selling…"></textarea>
-    <label>SDE multiples (low / mid / high)</label>
-    <div class="row">
-      <input class="multi" type="number" step="0.1" name="m_low" value="2.0">
-      <input class="multi" type="number" step="0.1" name="m_mid" value="2.5">
-      <input class="multi" type="number" step="0.1" name="m_high" value="3.0">
-      <span class="muted" style="font-size:13px">You set these. Recast doesn't pick a price.</span>
+    <label>Notes</label>
+    <textarea name="notes" placeholder="Hours, staff, lease, how involved the owner is, key customers, why they're selling."></textarea>
+    <details>
+      <summary>Valuation multiples (default 2.0× / 2.5× / 3.0×)</summary>
+      <p class="muted small" style="margin:8px 0">Applied to weighted earnings to show a price range. You set these; Recast doesn't pick a price.</p>
+      <div class="row">
+        <input class="multi" type="number" step="0.1" name="m_low" value="2.0">
+        <input class="multi" type="number" step="0.1" name="m_mid" value="2.5">
+        <input class="multi" type="number" step="0.1" name="m_high" value="3.0">
+      </div>
+    </details>
+    <div style="margin-top:22px" class="row">
+      <button class="btn" type="submit">Create report</button>
+      <span class="muted small">Takes about 20 seconds. Files aren't saved.</span>
     </div>
-    <div style="margin-top:20px"><button class="btn" type="submit">Generate report</button>
-    {% if not has_key %}<span class="muted" style="font-size:13px;margin-left:10px">AI drafting off (no API key) — template text will be used.</span>{% endif %}</div>
   </form>
+
+  <h2 id="faq">Questions</h2>
+  <dl class="faq">
+    <dt>What's "recasting"?</dt>
+    <dd>Adjusting a small business's reported profit to show what it earns for one full-time owner: adding back the owner's salary, depreciation, interest and one-time costs. The result (SDE) is what most small businesses are priced on.</dd>
+    <dt>Is the draft ready to send to buyers?</dt>
+    <dd>No. It's a starting point. Every figure comes from your file, but you should check each addback and edit the writing before it goes out.</dd>
+    <dt>What happens to the seller's data?</dt>
+    <dd>Nothing is stored. The file is read, the report is built, and it's gone. The written sections are drafted by an AI model from the figures and your notes.</dd>
+  </dl>
+
+  <footer>Recast · Built in Kingston, Ontario · <a href="mailto:anshsudani05@gmail.com">anshsudani05@gmail.com</a></footer>
 </div>
 </body>
 </html>
