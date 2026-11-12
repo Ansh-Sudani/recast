@@ -40,7 +40,7 @@ def _facts(biz, m, val):
         for i in range(len(yrs)))
     return (f"Business: {biz.get('name') or 'Unnamed'}\nIndustry: {biz.get('industry')}\n"
             f"Location: {biz.get('location')}\nAsking price: {biz.get('asking') or 'not set'}"
-            f"{' (' + biz['_asking_mult'] + ' weighted SDE)' if biz.get('_asking_mult') else ''}\n\n"
+            f"{' (' + biz['_asking_mult'] + ' weighted SDE, ' + biz.get('_asking_pos','') + ' the indicative range)' if biz.get('_asking_mult') else ''}\n\n"
             f"Financials (recast):\n{rows}\nWeighted SDE: {_fmt(m['weighted_sde'])}\n"
             f"Indicative value range: {_fmt(val['low'])} - {_fmt(val['high'])}\n\n"
             f"Addbacks (assumed to go away after the sale): {biz.get('_addbacks') or 'none'}\n\n"

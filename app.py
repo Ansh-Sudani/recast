@@ -27,15 +27,19 @@ def index():
     return render_template("index.html", has_key=bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("GROQ_API_KEY")))
 
 
-def _run(filename, raw, biz, low, mid, high):
+def _run(filename, raw, biz, low, mid, high, fixed_cim=None):
     pnl = engine.parse_pnl(filename, raw)
     metrics, addbacks = engine.compute(pnl)
     val = engine.valuation(metrics["weighted_sde"], low, mid, high)
     engine.asking_flag(biz.get("asking"), metrics, val)
     ask = engine._num(__import__("re").sub(r"[^\d.]", "", biz.get("asking") or ""))
     biz = {**biz, "_asking_mult": f"{ask / metrics['weighted_sde']:.1f}x" if ask and metrics["weighted_sde"] > 0 else "",
+           "_asking_pos": ("above" if ask and ask > val["high"] else "below" if ask and ask < val["low"] else "within"),
            "_addbacks": ", ".join(f"{a['name']} ({int(a['share']*100)}%)" for a in addbacks if a["enabled"])}
-    cim, source = ai.draft_cim(biz, metrics, val)
+    if fixed_cim:
+        cim, source = fixed_cim, "reviewed"
+    else:
+        cim, source = ai.draft_cim(biz, metrics, val)
     return render_template("report.html", biz=biz, m=metrics, addbacks=addbacks,
                            val=val, cim=cim, cim_source=source, lines=pnl["lines"])
 
@@ -61,7 +65,10 @@ def analyze():
 
 @app.get("/sample")
 def sample():
-    return _run(SAMPLE.name, SAMPLE.read_bytes(), SAMPLE_BIZ, 2.0, 2.5, 3.0)
+    # The public demo uses a hand-reviewed CIM so every visitor sees the same, checked text.
+    import json
+    cim = json.loads((SAMPLE.parent / "lakeside_cafe_cim.json").read_text(encoding="utf-8"))
+    return _run(SAMPLE.name, SAMPLE.read_bytes(), SAMPLE_BIZ, 2.0, 2.5, 3.0, fixed_cim=cim)
 
 
 if __name__ == "__main__":
