@@ -20,8 +20,8 @@
   <h1>Turn a seller's P&amp;L into a listing-ready package.</h1>
   <p class="lede">Upload the profit and loss statement. Recast works out what the business really earns for an owner, flags what a buyer will question, and drafts the information memo, so you start editing instead of starting from scratch.</p>
   <div class="row" style="margin-top:22px">
-    <a class="btn" href="#start">Upload a P&amp;L</a>
-    <a class="btn ghost" href="/sample">See a sample report</a>
+    <a class="btn" href="/sample">See a sample report</a>
+    {% if gated %}<a class="btn ghost" href="mailto:anshsudani05@gmail.com?subject=Recast%20access&body=Hi%20Ansh%2C%20I'd%20like%20to%20try%20Recast%20on%20a%20listing.">Request access</a>{% else %}<a class="btn ghost" href="#start">Upload a P&amp;L</a>{% endif %}
   </div>
 
   <div class="steps">
@@ -31,6 +31,7 @@
   </div>
 
   <h2 id="start">Start a report</h2>
+  {% if gated %}<p class="muted" style="margin-top:-4px">Recast is in early access. Have a code? Enter it below. Otherwise <a href="mailto:anshsudani05@gmail.com?subject=Recast%20access">request access</a> and your first report is free.</p>{% endif %}
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form class="upload" action="/analyze" method="post" enctype="multipart/form-data">
     <div class="drop">
@@ -54,6 +55,8 @@
         <input class="multi" type="number" step="0.1" name="m_high" value="3.0">
       </div>
     </details>
+    {% if gated %}<label>Access code</label>
+    <input type="text" name="code" required autocomplete="off" style="max-width:260px">{% endif %}
     <div style="margin-top:22px" class="row">
       <button class="btn" type="submit">Create report</button>
       <span class="muted small">Takes about 20 seconds. Files aren't saved.</span>

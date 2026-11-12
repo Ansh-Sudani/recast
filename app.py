@@ -22,9 +22,15 @@ SAMPLE_BIZ = {
 }
 
 
+# Comma-separated codes in the ACCESS_CODES env var, e.g. "harbour-7k2,ottawa-q9x".
+# If ACCESS_CODES isn't set (local dev), uploads are open.
+def _codes():
+    return {c.strip().lower() for c in os.environ.get("ACCESS_CODES", "").split(",") if c.strip()}
+
+
 @app.get("/")
 def index():
-    return render_template("index.html", has_key=bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("GROQ_API_KEY")))
+    return render_template("index.html", gated=bool(_codes()))
 
 
 def _run(filename, raw, biz, low, mid, high, fixed_cim=None):
@@ -53,14 +59,18 @@ def _f(name, default):
 
 @app.post("/analyze")
 def analyze():
+    codes = _codes()
+    if codes and (request.form.get("code") or "").strip().lower() not in codes:
+        return render_template("index.html", gated=True,
+                               error="That access code isn't valid. Email anshsudani05@gmail.com for one."), 403
     f = request.files.get("pnl")
     if not f or not f.filename:
-        return render_template("index.html", error="Upload a P&L file (CSV or Excel)."), 400
+        return render_template("index.html", gated=bool(codes), error="Upload a P&L file (CSV or Excel)."), 400
     biz = {k: (request.form.get(k) or "").strip() for k in ("name", "industry", "location", "asking", "notes")}
     try:
         return _run(f.filename, f.read(), biz, _f("m_low", 2.0), _f("m_mid", 2.5), _f("m_high", 3.0))
     except ValueError as e:
-        return render_template("index.html", error=str(e)), 400
+        return render_template("index.html", gated=bool(codes), error=str(e)), 400
 
 
 @app.get("/sample")
